@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Ventas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fb;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: var(--shadow);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        select {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: none;
+            background-color: white;
+            color: var(--dark);
+            font-weight: 500;
+            box-shadow: var(--shadow);
+        }
+        
+        .dashboard {
+            padding: 2rem 0;
+        }
+        
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .kpi-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .kpi-card h3 {
+            font-size: 0.9rem;
+            color: var(--gray);
+            margin-bottom: 10px;
+        }
+        
+        .kpi-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .kpi-card .trend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .trend.up {
+            color: #28a745;
+        }
+        
+        .trend.down {
+            color: #dc3545;
+        }
+        
+        .charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .chart-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: var(--dark);
+            font-weight: 600;
+        }
+        
+        .products-table {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        footer {
+            background-color: var(--dark);
+            color: white;
+            text-align: center;
+            padding: 1.5rem 0;
+            margin-top: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .charts {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">Dashboard de Ventas</div>
+                <div class="filters">
+                    <select id="categoryFilter">
+                        <option value="all">Todas las categorías</option>
+                        <option value="Electrónicos">Electrónicos</option>
+                        <option value="Hogar">Hogar</option>
+                        <option value="Ropa">Ropa</option>
+                        <option value="Deportes">Deportes</option>
+                    </select>
+                    <select id="yearFilter">
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <section class="dashboard">
+        <div class="container">
+            <div class="kpi-cards">
+                <div class="kpi-card">
+                    <h3>Ventas Totales</h3>
+                    <div class="value" id="totalSales">$0</div>
+                    <div class="trend up">↑ 12% vs período anterior</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Productos Vendidos</h3>
+                    <div class="value" id="totalProducts">0</div>
+                    <div class="trend up">↑ 8% vs período anterior</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Ventas Promedio por Mes</h3>
+                    <div class="value" id="avgSales">$0</div>
+                    <div class="trend down">↓ 3% vs período anterior</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Categoría Más Vendida</h3>
+                    <div class="value" id="topCategory">-</div>
+                    <div class="trend">35% del total</div>
+                </div>
+            </div>
+            
+            <div class="charts">
+                <div class="chart-container">
+                    <h3 class="chart-title">Ventas Mensuales</h3>
+                    <canvas id="monthlySalesChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Ventas por Categoría</h3>
+                    <canvas id="categorySalesChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="products-table">
+                <h3 class="chart-title">Productos Más Vendidos</h3>
+                <table id="productsTable">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Precio</th>
+                            <th>Unidades Vendidas</th>
+                            <th>Total Vendido</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <!-- Los datos se llenarán con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+    
+    <footer>
+        <div class="container">
+            <p>Dashboard de Ventas &copy; 2023 - Todos los derechos reservados</p>
+        </div>
+    </footer>
+
+    <script>
+        // Datos de ejemplo - en un caso real, estos datos vendrían de un archivo CSV o API
+        const salesData = [
+            { id: 1, product: "Smartphone X", category: "Electrónicos", price: 699, units: 150, month: "Enero", year: 2023 },
+            { id: 2, product: "Laptop Pro", category: "Electrónicos", price: 1299, units: 80, month: "Enero", year: 2023 },
+            { id: 3, product: "Auriculares Inalámbricos", category: "Electrónicos", price: 199, units: 220, month: "Enero", year: 2023 },
+            { id: 4, product: "Sofá Moderno", category: "Hogar", price: 899, units: 35, month: "Enero", year: 2023 },
+            { id: 5, product: "Mesa de Centro", category: "Hogar", price: 299, units: 60, month: "Enero", year: 2023 },
+            { id: 6, product: "Lámpara LED", category: "Hogar", price: 89, units: 120, month: "Enero", year: 2023 },
+            { id: 7, product: "Camiseta Deportiva", category: "Ropa", price: 29, units: 300, month: "Enero", year: 2023 },
+            { id: 8, product: "Zapatillas Running", category: "Deportes", price: 129, units: 150, month: "Enero", year: 2023 },
+            { id: 9, product: "Raqueta Tenis", category: "Deportes", price: 199, units: 45, month: "Enero", year: 2023 },
+            
+            { id: 10, product: "Smartphone X", category: "Electrónicos", price: 699, units: 180, month: "Febrero", year: 2023 },
+            { id: 11, product: "Tablet Lite", category: "Electrónicos", price: 399, units: 110, month: "Febrero", year: 2023 },
+            { id: 12, product: "Silla Ergonómica", category: "Hogar", price: 249, units: 75, month: "Febrero", year: 2023 },
+            { id: 13, product: "Jeans Clásicos", category: "Ropa", price: 59, units: 200, month: "Febrero", year: 2023 },
+            { id: 14, product: "Balón Fútbol", category: "Deportes", price: 49, units: 90, month: "Febrero", year: 2023 },
+            
+            // Más datos para otros meses...
+            { id: 15, product: "Smart TV 55\"", category: "Electrónicos", price: 799, units: 65, month: "Marzo", year: 2023 },
+            { id: 16, product: "Cafetera Automática", category: "Hogar", price: 159, units: 85, month: "Marzo", year: 2023 },
+            { id: 17, product: "Chaqueta Impermeable", category: "Ropa", price: 89, units: 120, month: "Marzo", year: 2023 },
+            { id: 18, product: "Bicicleta Montaña", category: "Deportes", price: 599, units: 25, month: "Marzo", year: 2023 },
+            
+            { id: 19, product: "Auriculares Inalámbricos", category: "Electrónicos", price: 199, units: 180, month: "Abril", year: 2023 },
+            { id: 20, product: "Mesa de Comedor", category: "Hogar", price: 499, units: 30, month: "Abril", year: 2023 },
+            { id: 21, product: "Zapatos Formales", category: "Ropa", price: 129, units: 95, month: "Abril", year: 2023 },
+            { id: 22, product: "Pelota Baloncesto", category: "Deportes", price: 39, units: 110, month: "Abril", year: 2023 },
+            
+            // Agregando más meses para completar el año
+            { id: 23, product: "Smartphone X", category: "Electrónicos", price: 699, units: 160, month: "Mayo", year: 2023 },
+            { id: 24, product: "Sofá Moderno", category: "Hogar", price: 899, units: 40, month: "Mayo", year: 2023 },
+            { id: 25, product: "Camiseta Deportiva", category: "Ropa", price: 29, units: 280, month: "Mayo", year: 2023 },
+            { id: 26, product: "Raqueta Tenis", category: "Deportes", price: 199, units: 50, month: "Mayo", year: 2023 },
+            
+            { id: 27, product: "Laptop Pro", category: "Electrónicos", price: 1299, units: 90, month: "Junio", year: 2023 },
+            { id: 28, product: "Mesa de Centro", category: "Hogar", price: 299, units: 70, month: "Junio", year: 2023 },
+            { id: 29, product: "Zapatillas Running", category: "Deportes", price: 129, units: 170, month: "Junio", year: 2023 },
+            
+            { id: 30, product: "Tablet Lite", category: "Electrónicos", price: 399, units: 130, month: "Julio", year: 2023 },
+            { id: 31, product: "Silla Ergonómica", category: "Hogar", price: 249, units: 85, month: "Julio", year: 2023 },
+            { id: 32, product: "Jeans Clásicos", category: "Ropa", price: 59, units: 220, month: "Julio", year: 2023 },
+            
+            { id: 33, product: "Smart TV 55\"", category: "Electrónicos", price: 799, units: 75, month: "Agosto", year: 2023 },
+            { id: 34, product: "Cafetera Automática", category: "Hogar", price: 159, units: 95, month: "Agosto", year: 2023 },
+            { id: 35, product: "Chaqueta Impermeable", category: "Ropa", price: 89, units: 140, month: "Agosto", year: 2023 },
+            
+            { id: 36, product: "Auriculares Inalámbricos", category: "Electrónicos", price: 199, units: 200, month: "Septiembre", year: 2023 },
+            { id: 37, product: "Mesa de Comedor", category: "Hogar", price: 499, units: 35, month: "Septiembre", year: 2023 },
+            { id: 38, product: "Zapatos Formales", category: "Ropa", price: 129, units: 105, month: "Septiembre", year: 2023 },
+            
+            { id: 39, product: "Smartphone X", category: "Electrónicos", price: 699, units: 190, month: "Octubre", year: 2023 },
+            { id: 40, product: "Sofá Moderno", category: "Hogar", price: 899, units: 45, month: "Octubre", year: 2023 },
+            { id: 41, product: "Camiseta Deportiva", category: "Ropa", price: 29, units: 320, month: "Octubre", year: 2023 },
+            
+            { id: 42, product: "Laptop Pro", category: "Electrónicos", price: 1299, units: 100, month: "Noviembre", year: 2023 },
+            { id: 43, product: "Mesa de Centro", category: "Hogar", price: 299, units: 80, month: "Noviembre", year: 2023 },
+            { id: 44, product: "Zapatillas Running", category: "Deportes", price: 129, units: 190, month: "Noviembre", year: 2023 },
+            
+            { id: 45, product: "Tablet Lite", category: "Electrónicos", price: 399, units: 150, month: "Diciembre", year: 2023 },
+            { id: 46, product: "Silla Ergonómica", category: "Hogar", price: 249, units: 95, month: "Diciembre", year: 2023 },
+            { id: 47, product: "Jeans Clásicos", category: "Ropa", price: 59, units: 250, month: "Diciembre", year: 2023 },
+            { id: 48, product: "Balón Fútbol", category: "Deportes", price: 49, units: 120, month: "Diciembre", year: 2023 }
+        ];
+
+        // Variables para los gráficos
+        let monthlySalesChart, categorySalesChart;
+        
+        // Función para formatear números como moneda
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-ES', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+        
+        // Función para inicializar el dashboard
+        function initDashboard() {
+            updateKPIs();
+            renderCharts();
+            renderProductsTable();
+            
+            // Agregar event listeners a los filtros
+            document.getElementById('categoryFilter').addEventListener('change', updateDashboard);
+            document.getElementById('yearFilter').addEventListener('change', updateDashboard);
+        }
+        
+        // Función para actualizar el dashboard cuando cambian los filtros
+        function updateDashboard() {
+            updateKPIs();
+            updateCharts();
+            updateProductsTable();
+        }
+        
+        // Función para actualizar los KPIs
+        function updateKPIs() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const yearFilter = parseInt(document.getElementById('yearFilter').value);
+            
+            // Filtrar datos según los filtros seleccionados
+            let filteredData = salesData.filter(item => item.year === yearFilter);
+            if (categoryFilter !== 'all') {
+                filteredData = filteredData.filter(item => item.category === categoryFilter);
+            }
+            
+            // Calcular métricas
+            const totalSales = filteredData.reduce((sum, item) => sum + (item.price * item.units), 0);
+            const totalProducts = filteredData.reduce((sum, item) => sum + item.units, 0);
+            const avgSales = totalSales / 12; // Promedio mensual
+            
+            // Encontrar la categoría más vendida
+            const categorySales = {};
+            filteredData.forEach(item => {
+                if (!categorySales[item.category]) {
+                    categorySales[item.category] = 0;
+                }
+                categorySales[item.category] += item.price * item.units;
+            });
+            
+            let topCategory = '-';
+            let maxSales = 0;
+            for (const category in categorySales) {
+                if (categorySales[category] > maxSales) {
+                    maxSales = categorySales[category];
+                    topCategory = category;
+                }
+            }
+            
+            // Actualizar los valores en la interfaz
+            document.getElementById('totalSales').textContent = formatCurrency(totalSales);
+            document.getElementById('totalProducts').textContent = totalProducts.toLocaleString();
+            document.getElementById('avgSales').textContent = formatCurrency(avgSales);
+            document.getElementById('topCategory').textContent = topCategory;
+        }
+        
+        // Función para renderizar los gráficos
+        function renderCharts() {
+            const ctx1 = document.getElementById('monthlySalesChart').getContext('2d');
+            const ctx2 = document.getElementById('categorySalesChart').getContext('2d');
+            
+            // Datos para el gráfico de ventas mensuales
+            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                           'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            
+            const monthlySales = months.map(month => {
+                const monthData = salesData.filter(item => item.month === month && item.year === 2023);
+                return monthData.reduce((sum, item) => sum + (item.price * item.units), 0);
+            });
+            
+            // Crear gráfico de ventas mensuales
+            monthlySalesChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Ventas Mensuales',
+                        data: monthlySales,
+                        borderColor: '#4361ee',
+                        backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Datos para el gráfico de ventas por categoría
+            const categories = [...new Set(salesData.map(item => item.category))];
+            const categorySales = categories.map(category => {
+                const categoryData = salesData.filter(item => item.category === category && item.year === 2023);
+                return categoryData.reduce((sum, item) => sum + (item.price * item.units), 0);
+            });
+            
+            // Crear gráfico de ventas por categoría
+            categorySalesChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        data: categorySales,
+                        backgroundColor: [
+                            '#4361ee',
+                            '#3a0ca3',
+                            '#7209b7',
+                            '#f72585'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    const total = categorySales.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Función para actualizar los gráficos cuando cambian los filtros
+        function updateCharts() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const yearFilter = parseInt(document.getElementById('yearFilter').value);
+            
+            // Filtrar datos según los filtros seleccionados
+            let filteredData = salesData.filter(item => item.year === yearFilter);
+            if (categoryFilter !== 'all') {
+                filteredData = filteredData.filter(item => item.category === categoryFilter);
+            }
+            
+            // Actualizar gráfico de ventas mensuales
+            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                           'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            
+            const monthlySales = months.map(month => {
+                const monthData = filteredData.filter(item => item.month === month);
+                return monthData.reduce((sum, item) => sum + (item.price * item.units), 0);
+            });
+            
+            monthlySalesChart.data.datasets[0].data = monthlySales;
+            monthlySalesChart.update();
+            
+            // Actualizar gráfico de ventas por categoría
+            const categories = categoryFilter === 'all' 
+                ? [...new Set(salesData.map(item => item.category))] 
+                : [categoryFilter];
+                
+            const categorySales = categories.map(category => {
+                const categoryData = filteredData.filter(item => item.category === category);
+                return categoryData.reduce((sum, item) => sum + (item.price * item.units), 0);
+            });
+            
+            categorySalesChart.data.labels = categories;
+            categorySalesChart.data.datasets[0].data = categorySales;
+            categorySalesChart.update();
+        }
+        
+        // Función para renderizar la tabla de productos
+        function renderProductsTable() {
+            const tableBody = document.getElementById('productsTableBody');
+            tableBody.innerHTML = '';
+            
+            // Agrupar productos y sumar unidades vendidas
+            const productSales = {};
+            salesData.forEach(item => {
+                if (!productSales[item.product]) {
+                    productSales[item.product] = {
+                        category: item.category,
+                        price: item.price,
+                        units: 0,
+                        total: 0
+                    };
+                }
+                productSales[item.product].units += item.units;
+                productSales[item.product].total += item.price * item.units;
+            });
+            
+            // Convertir a array y ordenar por unidades vendidas
+            const sortedProducts = Object.entries(productSales)
+                .map(([product, data]) => ({ product, ...data }))
+                .sort((a, b) => b.units - a.units)
+                .slice(0, 10); // Mostrar solo los 10 primeros
+            
+            // Llenar la tabla
+            sortedProducts.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.product}</td>
+                    <td>${item.category}</td>
+                    <td>${formatCurrency(item.price)}</td>
+                    <td>${item.units.toLocaleString()}</td>
+                    <td>${formatCurrency(item.total)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Función para actualizar la tabla de productos cuando cambian los filtros
+        function updateProductsTable() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const yearFilter = parseInt(document.getElementById('yearFilter').value);
+            
+            // Filtrar datos según los filtros seleccionados
+            let filteredData = salesData.filter(item => item.year === yearFilter);
+            if (categoryFilter !== 'all') {
+                filteredData = filteredData.filter(item => item.category === categoryFilter);
+            }
+            
+            const tableBody = document.getElementById('productsTableBody');
+            tableBody.innerHTML = '';
+            
+            // Agrupar productos y sumar unidades vendidas
+            const productSales = {};
+            filteredData.forEach(item => {
+                if (!productSales[item.product]) {
+                    productSales[item.product] = {
+                        category: item.category,
+                        price: item.price,
+                        units: 0,
+                        total: 0
+                    };
+                }
+                productSales[item.product].units += item.units;
+                productSales[item.product].total += item.price * item.units;
+            });
+            
+            // Convertir a array y ordenar por unidades vendidas
+            const sortedProducts = Object.entries(productSales)
+                .map(([product, data]) => ({ product, ...data }))
+                .sort((a, b) => b.units - a.units)
+                .slice(0, 10); // Mostrar solo los 10 primeros
+            
+            // Llenar la tabla
+            sortedProducts.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.product}</td>
+                    <td>${item.category}</td>
+                    <td>${formatCurrency(item.price)}</td>
+                    <td>${item.units.toLocaleString()}</td>
+                    <td>${formatCurrency(item.total)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Inicializar el dashboard cuando se carga la página
+        window.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>
